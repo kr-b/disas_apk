@@ -1,0 +1,8 @@
+rstr
+plotly
+numpy
+scipy
+matplotlib
+scikit_learn
+sklearn
+gitpython
