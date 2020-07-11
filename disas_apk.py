@@ -24,7 +24,7 @@ except ModuleNotFoundError:
 
 # ----------------------------------------------------------------------------------- #
 
-# -----------------------------------[Definitions]----------------------------------- #
+# ---------------------------------[Initializations]--------------------------------- #
 class DisasApkError(Exception):
     """Base exception for disas-apk errors"""
     pass
@@ -39,16 +39,17 @@ class InvalidApkIdentifier(DisasApkError):
 
 tool_path = {
     "root": "{}/tools".format(os.path.dirname(os.path.realpath(__file__)))
-#   "jadx": ""
 }
 
 out_path = {
     "root": "{}/disas-output".format(os.getcwd())
 }
+
+out_path["log"] = os.path.join(out_path["root"], "disas.log")
 # ----------------------------------------------------------------------------------- #
 
 # ------------------------------------[Functions]------------------------------------ #
-def write_log(msg, log_type="info"):
+def write_log(msg, log_type="info", save=out_path["log"]):
     if log_type == "info":
         prompt = "[-]"
     elif log_type == "warn":
@@ -60,7 +61,12 @@ def write_log(msg, log_type="info"):
 
     fmt_msg   = "[{0}] {1} {2}"
     timestamp = datetime.datetime.now().strftime("%H:%M:%S.%f")
-    print(fmt_msg.format(timestamp, prompt, msg))
+    log = fmt_msg.format(timestamp, prompt, msg)
+    print(log)
+
+    if save is not None:
+        with open(save, 'a') as file_ptr:
+            file_ptr.write(log + '\n')
 
 def install_tools():
     """Install 3rd party tools used by this script"""
@@ -73,6 +79,7 @@ def install_tools():
     if not os.path.exists(tool_path["root"]):
         # If not, create it
         os.mkdir(tool_path["root"])
+
     open(os.path.join(tool_path["root"], "__init__.py"), 'w').close()
 
     # Download JADX
