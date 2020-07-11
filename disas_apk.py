@@ -68,12 +68,12 @@ def install_tools():
     global tool_path, out_path
 
     original_cwd = os.getcwd()
-    open(os.path.join(tool_path["root"], "__init__.py"), 'w').close()
 
     # Check if tools dir exists
     if not os.path.exists(tool_path["root"]):
         # If not, create it
         os.mkdir(tool_path["root"])
+    open(os.path.join(tool_path["root"], "__init__.py"), 'w').close()
 
     # Download JADX
     jadx_uri = "https://github.com/skylot/jadx/releases/download/v1.1.0/jadx-1.1.0.zip"
