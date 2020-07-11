@@ -10,6 +10,8 @@ import sys
 import argparse
 import zipfile
 import urllib.request
+import urllib.parse as urlparse
+from urllib.parse import parse_qs
 import re
 import shutil
 import datetime
@@ -22,7 +24,19 @@ except ModuleNotFoundError:
 
 # ----------------------------------------------------------------------------------- #
 
-# ------------------------------------[Variables]------------------------------------ #
+# -----------------------------------[Definitions]----------------------------------- #
+class DisasApkError(Exception):
+    """Base exception for disas-apk errors"""
+    pass
+
+class InvalidApkIdentifier(DisasApkError):
+    """Raised when an invalid APK identifer is passed to disas-apk"""
+
+    def __init__(self, apk_identifier, message="Invalid APK identifier"):
+        self.apk_identifier = apk_identifier
+        self.message = "{0}: {1}".format(message, str(self.apk_identifier)) 
+        super().__init__(self.message)
+
 tool_path = {
     "root": "{}/tools".format(os.path.dirname(os.path.realpath(__file__)))
 #   "jadx": ""
@@ -100,7 +114,7 @@ def install_tools():
     os.remove(jadx_zip)
     os.chdir(original_cwd)
 
-def decompile(apk_path):
+def decompile_apk(apk_path):
     """Decompile an APK using Jadx and apktool
 
     Args:
@@ -254,17 +268,73 @@ def scan_source_code():
 
     # Save output to files
     for search in matches:
-        
         # Remove duplicates from results
         search["results"] = list(dict.fromkeys(search["results"]))
 
-        # Set output path
-        out_path[search["output"]] = os.path.join(out_path["root"], search["output"])
+    output = {element["output"]:element["results"] for element in matches}
+    return output
 
-        # Write lines
-        with open(out_path[search["output"]], 'a') as file_ptr:
-            for match in search["results"]:
-                file_ptr.writelines('\n'.join(search["results"]))
+def disas_apk(apk_identifer):
+    """
+    Descriptioon:
+        Disassemble and APK and automatically extract useful information
+        such as URLs, API Keys and hardcoded passwords.
+
+    Args:
+        apk_identifier: str
+            This can be one of these values:
+                - Google Play URL for an app
+                - APK ID, such as com.tinder
+                - Path to an APK file
+
+    Output:
+        Outputs all files into disas-output directory in current path
+
+    Returns:
+        results: dictionary - The extracted information
+    """
+
+    # Determine apk_identifier type
+    if os.path.exists(apk_identifer):
+        # Type is APK file
+
+        if not os.path.isfile(apk_identifer):
+            raise InvalidApkIdentifier(apk_identifer, "Invalid APK file")
+
+        apk_path = apk_identifer
+
+    else:
+        # Not going to be a local file, will have to download it
+        if re.match("https://play.google.com/store/apps/details*", apk_identifer):
+            # Type is Google Play URL
+
+            # Extract APK ID
+            url_params = urlparse.urlparse(apk_identifer)
+            if "id" in url_params:
+                apk_id = url_params["id"][0]
+            else:
+                raise InvalidApkIdentifier(apk_identifer, "Invalid Google Play URL")
+        else:
+            # Type is APK ID
+            apk_id = apk_identifer
+
+        # TODO: Download APK file
+        apk_path = None
+        raise NotImplementedError("TODO: Download APK file")
+
+    # Main Logic
+
+    write_log("Updating tools..")
+    install_tools()
+
+    write_log("Decompiling APK")
+    decompile_apk(apk_path) 
+
+    write_log("Analysing source code")
+    results = scan_source_code()
+
+    return results
+
 # ----------------------------------------------------------------------------------- #
 
 # ------------------------------------[Main Logic]----------------------------------- #
@@ -292,10 +362,21 @@ def main(arguments):
     install_tools()
 
     write_log("Decompiling APK")
-    decompile(args.apk) 
+    decompile_apk(args.apk) 
 
     write_log("Analysing source code")
-    scan_source_code()
+    results = scan_source_code()
+
+    # Save output
+    for search in results:
+
+        # Set output path
+        out_path[search["output"]] = os.path.join(out_path["root"], search["output"])
+
+        # Write lines
+        with open(out_path[search["output"]], 'a') as file_ptr:
+            for match in search["results"]:
+                file_ptr.writelines('\n'.join(search["results"]))
 
 
 if __name__ == '__main__':
