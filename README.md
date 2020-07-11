@@ -19,8 +19,14 @@ $ git clone https://github.com/kr-b/disas-apk.git
 $ cd disas-apk
 $ pip install -r requirements.txt
 ```
-### Example use
+### CLI Example
 ```
 $ python disas-apk.py example.apk
 ```
 Output is saved in `cwd` in a folder called `disas-output`
+### Module Example
+```
+from disas_apk import disas_apk
+
+results = disas_apk.disas_apk("./com.example.apk")
+```
