@@ -42,10 +42,9 @@ tool_path = {
 }
 
 out_path = {
-    "root": "{}/disas-output".format(os.getcwd())
+    "root": "{}/disas-output".format(os.getcwd()),
+    "log": "{}/disas.log".format(os.getcwd())
 }
-
-out_path["log"] = os.path.join(out_path["root"], "disas.log")
 # ----------------------------------------------------------------------------------- #
 
 # ------------------------------------[Functions]------------------------------------ #
@@ -65,6 +64,8 @@ def write_log(msg, log_type="info", save=out_path["log"]):
     print(log)
 
     if save is not None:
+        if not os.path.exists(save):
+            open(save, 'w').close()
         with open(save, 'a') as file_ptr:
             file_ptr.write(log + '\n')
 
